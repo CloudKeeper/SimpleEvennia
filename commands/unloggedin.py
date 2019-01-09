@@ -13,6 +13,8 @@ from evennia.server.models import ServerConfig
 from evennia.server.throttle import Throttle
 from evennia.comms.models import ChannelDB
 from evennia.server.sessionhandler import SESSIONS
+from django.conf import settings
+from evennia import utils
 
 from evennia.utils import create, logger, utils, gametime
 from evennia.commands.cmdhandler import CMD_LOGINSTART
@@ -353,9 +355,19 @@ class CmdUnconnectedLook(COMMAND_DEFAULT_CLASS):
 
     def func(self):
         """Show the connect screen."""
-        connection_screen = utils.random_string_from_module(CONNECTION_SCREEN_MODULE)
-        if not connection_screen:
-            connection_screen = "No connection screen found. Please contact an admin."
+        connection_screen = """
+        |b==============================================================|n
+         Welcome to |g{}|n, version {}!
+
+         If you have an existing account, connect to it by typing:
+              |wconnect <username> <password>|n
+         If you need to create an account, type (without the <>'s):
+              |wcreate <username> <password>|n
+
+         If you have spaces in your username, enclose it in quotes.
+         Enter |whelp|n for more info. |wlook|n will re-show this screen.
+        |b==============================================================|n""" \
+            .format(settings.SERVERNAME, utils.get_evennia_version())
         self.caller.msg(connection_screen)
 
 
