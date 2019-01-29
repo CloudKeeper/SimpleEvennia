@@ -5,7 +5,6 @@ import re
 import datetime
 from codecs import lookup as codecs_lookup
 from random import getrandbits
-from django.conf import settings
 from django.contrib.auth import authenticate
 from evennia.accounts.models import AccountDB
 from evennia.objects.models import ObjectDB

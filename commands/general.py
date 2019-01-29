@@ -1,10 +1,8 @@
 """
 General Character commands usually available to all characters
 """
-import re
 from django.conf import settings
 from evennia.utils import utils, evtable
-from evennia.typeclasses.attributes import NickTemplateInvalid
 
 COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
 
@@ -34,6 +32,7 @@ class CmdLook(COMMAND_DEFAULT_CLASS):
         Handle the looking.
         """
         caller = self.caller
+
         if not self.args:
             target = caller.location
             if not target:
@@ -71,13 +70,13 @@ class CmdInventory(COMMAND_DEFAULT_CLASS):
     def func(self):
         """check inventory"""
         items = self.caller.contents
+
         if not items:
             string = "You are not carrying anything."
         else:
-            table = evtable.EvTable(border="header")
+            string = "You are carrying:"
             for item in items:
-                table.add_row("|C%s|n" % item.name, item.db.desc or "")
-            string = "|wYou are carrying:\n%s" % table
+                string += "\n%s" % item.name
         self.caller.msg(string)
 
 
@@ -104,18 +103,17 @@ class CmdGet(COMMAND_DEFAULT_CLASS):
         if not self.args:
             caller.msg("Get what?")
             return
+
         obj = caller.search(self.args, location=caller.location)
         if not obj:
             return
+
         if caller == obj:
             caller.msg("You can't get yourself.")
             return
         
         if not obj.access(caller, 'get'):
-            if obj.db.get_err_msg:
-                caller.msg(obj.db.get_err_msg)
-            else:
-                caller.msg("You can't get that.")
+            caller.msg("You can't get that.")
             return
 
         obj.move_to(caller, quiet=True)
@@ -145,6 +143,7 @@ class CmdDrop(COMMAND_DEFAULT_CLASS):
         """Implement command"""
 
         caller = self.caller
+
         if not self.args:
             caller.msg("Drop what?")
             return
@@ -183,6 +182,7 @@ class CmdGive(COMMAND_DEFAULT_CLASS):
         """Implement give"""
 
         caller = self.caller
+
         if not self.args or not self.rhs:
             caller.msg("Usage: give <inventory object> = <target>")
             return
@@ -191,11 +191,14 @@ class CmdGive(COMMAND_DEFAULT_CLASS):
                                 nofound_string="You aren't carrying %s." % self.lhs,
                                 multimatch_string="You carry more than one %s:" % self.lhs)
         target = caller.search(self.rhs)
+
         if not (to_give and target):
             return
+
         if target == caller:
             caller.msg("You keep %s to yourself." % to_give.key)
             return
+
         if not to_give.location == caller:
             caller.msg("You are not holding %s." % to_give.key)
             return
@@ -256,8 +259,8 @@ class CmdSay(COMMAND_DEFAULT_CLASS):
             return
 
         speech = self.args
-        caller.msg('You say, "' + speech + '"')
-        caller.location.msg_contents(text=caller.key + ' says, "' + speech + '"', 
+        caller.msg('You say, "%s"' % speech)
+        caller.location.msg_contents(text='%s says, "%s"' % (caller.name, speech),
                                      from_obj=caller, exclude=caller)
 
 
@@ -267,7 +270,6 @@ class CmdWhisper(COMMAND_DEFAULT_CLASS):
 
     Usage:
       whisper <character> = <message>
-      whisper <char1>, <char2> = <message>
 
     Talk privately to one or more characters in your current location, without
     others in the room being informed.
@@ -285,10 +287,8 @@ class CmdWhisper(COMMAND_DEFAULT_CLASS):
             caller.msg("Usage: whisper <character> = <message>")
             return
 
-        receivers = [recv.strip() for recv in self.lhs.split(",")]
-        receivers = [caller.search(receiver) for receiver in receivers]
-        receivers = [recv for recv in receivers if recv]
-        if not receivers:
+        receiver = caller.search(self.lhs)
+        if not receiver:
             caller.msg("Whisper to whom?")
 
         speech = self.rhs
@@ -296,9 +296,9 @@ class CmdWhisper(COMMAND_DEFAULT_CLASS):
             caller.msg("Whisper what?")
             return
         
-        caller.msg('You whisper to ' + ' and '.join([recv.key for recv in receivers]) + ', "' + speech + '"')
-        for recv in receivers:
-            recv.msg(caller.key + ' whispers, "' + speech + '"')
+        caller.msg('You whisper to %s, "%s"' % (receiver.name, speech))
+        receiver.msg('%s whispers, "%s"' % (caller.name, speech))
+
 
 class CmdPose(COMMAND_DEFAULT_CLASS):
     """
